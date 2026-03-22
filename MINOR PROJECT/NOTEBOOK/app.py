@@ -3,8 +3,20 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 
+# -----------------------------
 # Page Config
+# -----------------------------
 st.set_page_config(page_title="Movie Ratings Analysis", layout="wide")
+
+# -----------------------------
+# UI Styling
+# -----------------------------
+st.markdown("""
+<style>
+h1 { color: #00FFAA; }
+h2, h3 { color: #00CCFF; }
+</style>
+""", unsafe_allow_html=True)
 
 st.title("🎬 Movie Ratings & Genre Trends Dashboard")
 
@@ -39,14 +51,45 @@ st.success("✅ Dataset Loaded Successfully!")
 # Sidebar Filter
 # -----------------------------
 st.sidebar.header("Filter Options")
-
 min_rating = st.sidebar.slider("Select Minimum Rating", 1.0, 5.0, 3.0)
-
 filtered_df = df[df["rating"] >= min_rating]
 
 # -----------------------------
-# 1️⃣ Rating Distribution
+# Dashboard Overview
 # -----------------------------
+st.subheader("📊 Project Overview")
+
+col1, col2, col3 = st.columns(3)
+col1.metric("Total Movies", df["movieId"].nunique())
+col2.metric("Total Users", df["userId"].nunique())
+col3.metric("Average Rating", round(df["rating"].mean(), 2))
+
+# -----------------------------
+# Search Feature
+# -----------------------------
+st.subheader("🔍 Search Movie")
+
+movie_name = st.text_input("Enter movie name")
+
+if movie_name:
+    result = df[df["title"].str.contains(movie_name, case=False)]
+    st.write(result[["title", "rating"]].head(10))
+
+# -----------------------------
+# Genre Filter
+# -----------------------------
+st.subheader("🎭 Filter by Genre")
+
+genre_list = sorted(set("|".join(df["genres"]).split("|")))
+selected_genre = st.selectbox("Select Genre", genre_list)
+
+genre_filtered = filtered_df[filtered_df["genres"].str.contains(selected_genre)]
+st.write(genre_filtered[["title", "genres", "rating"]].head(10))
+
+# -----------------------------
+# Rating Distribution
+# -----------------------------
+st.markdown("---")
 st.subheader("📊 Rating Distribution")
 
 fig1, ax1 = plt.subplots()
@@ -55,26 +98,30 @@ ax1.set_xlabel("Rating")
 ax1.set_ylabel("Count")
 st.pyplot(fig1)
 
-# -----------------------------
-# 2️⃣ Top 10 Most Rated Movies
-# -----------------------------
-st.subheader("🏆 Top 10 Most Rated Movies")
+st.write("👉 Most users give ratings between 3 and 4, indicating generally positive feedback.")
 
-top_movies = (
+# -----------------------------
+# Top Rated Movies (FIXED)
+# -----------------------------
+st.markdown("---")
+st.subheader("⭐ Top Rated Movies")
+
+top_rated = (
     filtered_df.groupby("title")["rating"]
-    .count()
-    .sort_values(ascending=False)
-    .head(10)
+    .agg(['mean', 'count'])
+    .sort_values(by="mean", ascending=False)
 )
 
-fig2, ax2 = plt.subplots(figsize=(10,5))
-top_movies.plot(kind="bar", ax=ax2)
-ax2.set_ylabel("Number of Ratings")
-st.pyplot(fig2)
+top_rated = top_rated[top_rated["count"] > 50].head(10)
+
+st.write(top_rated)
+
+st.write("👉 These movies have the highest average ratings and are considered the best-rated by users.")
 
 # -----------------------------
-# 3️⃣ Average Rating per Genre
+# Average Rating per Genre
 # -----------------------------
+st.markdown("---")
 st.subheader("🎭 Average Rating per Genre")
 
 genre_df = filtered_df.copy()
@@ -88,9 +135,12 @@ avg_genre.plot(kind="bar", ax=ax3)
 ax3.set_ylabel("Average Rating")
 st.pyplot(fig3)
 
+st.write("👉 Some genres consistently receive higher average ratings, showing audience preference for certain types of movies.")
+
 # -----------------------------
-# 4️⃣ Year-wise Movie Trend
+# Year-wise Trend
 # -----------------------------
+st.markdown("---")
 st.subheader("📅 Year-wise Movie Release Trend")
 
 df["year"] = df["title"].str.extract(r"\((\d{4})\)")
@@ -102,5 +152,23 @@ ax4.set_xlabel("Year")
 ax4.set_ylabel("Number of Movies")
 st.pyplot(fig4)
 
+st.write("👉 The number of movies released has changed over the years, reflecting trends in the film industry.")
+
+# -----------------------------
+# Download Button
+# -----------------------------
+st.markdown("---")
+st.subheader("📥 Download Data")
+
+st.download_button(
+    label="Download Full Dataset as CSV",
+    data=df.to_csv(index=False),
+    file_name="movie_data.csv",
+    mime="text/csv"
+)
+
+# -----------------------------
+# Footer
+# -----------------------------
 st.markdown("---")
 st.write("📌 Project Developed using Python, Pandas, Matplotlib, Seaborn & Streamlit")
