@@ -41,6 +41,7 @@ def load_data():
     )
 
     df = pd.merge(ratings, movies, on="movieId")
+    df["year"] = df["title"].str.extract(r"\((\d{4})\)")
     return df
 
 df = load_data()
@@ -87,6 +88,40 @@ genre_filtered = filtered_df[filtered_df["genres"].str.contains(selected_genre)]
 st.write(genre_filtered[["title", "genres", "rating"]].head(10))
 
 # -----------------------------
+# 🎥 Movie Recommendation System (NEW 🔥)
+# -----------------------------
+st.markdown("---")
+st.subheader("🎥 Movie Recommendation System")
+
+# Inputs
+rec_genre = st.selectbox("Choose Genre", genre_list, key="rec_genre")
+rec_rating = st.slider("Minimum Rating", 1.0, 5.0, 3.5)
+rec_year = st.selectbox("Select Year", sorted(df["year"].dropna().unique()))
+violence_level = st.selectbox("Content Preference", ["Family Friendly (Low Violence)", "Action / Intense"])
+
+# Filtering
+recommendations = df[
+    (df["genres"].str.contains(rec_genre)) &
+    (df["rating"] >= rec_rating) &
+    (df["year"] == rec_year)
+]
+
+# Simulated violence filter
+if violence_level == "Family Friendly (Low Violence)":
+    recommendations = recommendations[
+        recommendations["genres"].str.contains("Comedy|Animation|Children")
+    ]
+else:
+    recommendations = recommendations[
+        recommendations["genres"].str.contains("Action|Thriller|Crime")
+    ]
+
+st.write("### 🎯 Recommended Movies:")
+st.write(recommendations[["title", "genres", "rating"]].drop_duplicates().head(10))
+
+st.write("👉 This system suggests movies based on user preferences like genre, rating, year, and content type.")
+
+# -----------------------------
 # Rating Distribution
 # -----------------------------
 st.markdown("---")
@@ -94,14 +129,12 @@ st.subheader("📊 Rating Distribution")
 
 fig1, ax1 = plt.subplots()
 sns.histplot(filtered_df["rating"], bins=10, kde=True, ax=ax1)
-ax1.set_xlabel("Rating")
-ax1.set_ylabel("Count")
 st.pyplot(fig1)
 
 st.write("👉 Most users give ratings between 3 and 4, indicating generally positive feedback.")
 
 # -----------------------------
-# Top Rated Movies (FIXED)
+# Top Rated Movies
 # -----------------------------
 st.markdown("---")
 st.subheader("⭐ Top Rated Movies")
@@ -119,7 +152,7 @@ st.write(top_rated)
 st.write("👉 These movies have the highest average ratings and are considered the best-rated by users.")
 
 # -----------------------------
-# Average Rating per Genre
+# Genre Analysis
 # -----------------------------
 st.markdown("---")
 st.subheader("🎭 Average Rating per Genre")
@@ -132,43 +165,38 @@ avg_genre = genre_df.groupby("genres")["rating"].mean().sort_values(ascending=Fa
 
 fig3, ax3 = plt.subplots(figsize=(10,5))
 avg_genre.plot(kind="bar", ax=ax3)
-ax3.set_ylabel("Average Rating")
 st.pyplot(fig3)
 
-st.write("👉 Some genres consistently receive higher average ratings, showing audience preference for certain types of movies.")
+st.write("👉 Some genres consistently receive higher average ratings.")
 
 # -----------------------------
-# Year-wise Trend
+# Year Trend
 # -----------------------------
 st.markdown("---")
 st.subheader("📅 Year-wise Movie Release Trend")
 
-df["year"] = df["title"].str.extract(r"\((\d{4})\)")
 year_count = df["year"].value_counts().sort_index()
 
 fig4, ax4 = plt.subplots(figsize=(10,5))
 year_count.plot(ax=ax4)
-ax4.set_xlabel("Year")
-ax4.set_ylabel("Number of Movies")
 st.pyplot(fig4)
 
-st.write("👉 The number of movies released has changed over the years, reflecting trends in the film industry.")
+st.write("👉 Movie releases vary over time showing industry trends.")
 
 # -----------------------------
-# Download Button
+# Download
 # -----------------------------
 st.markdown("---")
 st.subheader("📥 Download Data")
 
 st.download_button(
-    label="Download Full Dataset as CSV",
-    data=df.to_csv(index=False),
-    file_name="movie_data.csv",
-    mime="text/csv"
+    "Download Dataset",
+    df.to_csv(index=False),
+    "movie_data.csv"
 )
 
 # -----------------------------
 # Footer
 # -----------------------------
 st.markdown("---")
-st.write("📌 Project Developed using Python, Pandas, Matplotlib, Seaborn & Streamlit")
+st.write("📌 Developed using Python, Pandas, Matplotlib, Seaborn & Streamlit")
